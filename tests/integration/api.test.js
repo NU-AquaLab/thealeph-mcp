@@ -3,13 +3,13 @@
  * Integration tests for The Aleph API connectivity
  */
 
-const NetCoresAPIClient = require('../../src/client');
+const TheAlephAPIClient = require('../../src/client');
 const TheAlephTools = require('../../src/tools');
 
 class APIIntegrationTests {
   constructor(apiUrl) {
     this.apiUrl = apiUrl || process.env.THEALEPH_API_URL || 'https://thealeph.ai';
-    this.client = new NetCoresAPIClient(this.apiUrl);
+    this.client = new TheAlephAPIClient(this.apiUrl);
     this.tools = new TheAlephTools(this.apiUrl);
     this.passed = 0;
     this.failed = 0;
@@ -21,29 +21,29 @@ class APIIntegrationTests {
 
     await this.testAPIConnectivity();
     await this.testHealthEndpoint();
-    await this.testDataSummaryEndpoint();
-    await this.testSnapshotsEndpoint();
-    await this.testASNTrendEndpoint();
+    await this.testCurrentStatsEndpoint();
+    await this.testASNClassificationsEndpoint();
+    await this.testPTRQueryEndpoint();
 
     console.log(`\n📊 Integration Test Results:`);
     console.log(`✅ Passed: ${this.passed}`);
     console.log(`❌ Failed: ${this.failed}`);
-    
+
     return this.failed === 0;
   }
 
   async testAPIConnectivity() {
     console.log('📋 Testing basic API connectivity...');
-    
+
     try {
       const result = await this.client.testConnection();
-      
+
       if (result.success) {
         this.assert(true, 'API connection successful');
         this.assert(typeof result.status === 'string', 'Status should be string');
-        this.assert(typeof result.version === 'string', 'Version should be string');
+        this.assert(typeof result.message === 'string', 'Message should be string');
         console.log(`   Status: ${result.status}`);
-        console.log(`   Version: ${result.version}`);
+        console.log(`   Message: ${result.message}`);
         console.log('✅ API connectivity tests passed');
       } else {
         console.log(`⚠️  API connectivity failed: ${result.error}`);
@@ -76,99 +76,71 @@ class APIIntegrationTests {
     }
   }
 
-  async testDataSummaryEndpoint() {
-    console.log('📋 Testing data summary endpoint...');
-    
+  async testCurrentStatsEndpoint() {
+    console.log('📋 Testing current stats endpoint...');
+
     try {
-      const result = await this.client.getDataSummary();
-      
-      this.assert(typeof result === 'object', 'Data summary should be object');
-      
-      // Check for IPv4 or IPv6 data
-      const hasIPv4 = result.ipv4 !== undefined;
-      const hasIPv6 = result.ipv6 !== undefined;
-      this.assert(hasIPv4 || hasIPv6, 'Should have IPv4 or IPv6 data');
-      
-      if (result.ipv4) {
-        this.assert(typeof result.ipv4.snapshot_count === 'number', 'IPv4 snapshot count should be number');
-      }
-      
-      if (result.ipv6) {
-        this.assert(typeof result.ipv6.snapshot_count === 'number', 'IPv6 snapshot count should be number');
-      }
-      
-      console.log('✅ Data summary endpoint tests passed');
+      const result = await this.client.getCurrentStats(1);
+
+      this.assert(typeof result === 'object', 'Current stats should be object');
+
+      console.log('✅ Current stats endpoint tests passed');
     } catch (error) {
-      console.log(`❌ Data summary endpoint tests failed: ${error.message}`);
+      console.log(`❌ Current stats endpoint tests failed: ${error.message}`);
       this.failed++;
     }
   }
 
-  async testSnapshotsEndpoint() {
-    console.log('📋 Testing snapshots endpoint...');
-    
-    try {
-      const result = await this.client.getSnapshots();
-      
-      this.assert(typeof result === 'object', 'Snapshots result should be object');
-      
-      // Check for IPv4 or IPv6 snapshots
-      const hasIPv4 = result.ipv4 !== undefined;
-      const hasIPv6 = result.ipv6 !== undefined;
-      this.assert(hasIPv4 || hasIPv6, 'Should have IPv4 or IPv6 snapshots');
-      
-      if (result.ipv4 && Array.isArray(result.ipv4)) {
-        for (const snapshot of result.ipv4.slice(0, 3)) { // Check first few
-          this.assert(typeof snapshot.date === 'string', 'Snapshot date should be string');
-        }
-      }
-      
-      console.log('✅ Snapshots endpoint tests passed');
-    } catch (error) {
-      console.log(`❌ Snapshots endpoint tests failed: ${error.message}`);
-      this.failed++;
-    }
-  }
+  async testASNClassificationsEndpoint() {
+    console.log('📋 Testing ASN classifications endpoint...');
 
-  async testASNTrendEndpoint() {
-    console.log('📋 Testing ASN trend endpoint...');
-    
     try {
       // Test with Google's ASN
-      const result = await this.client.getASNTrend(15169, { ipVersion: 'ipv4' });
-      
-      this.assert(typeof result === 'object', 'ASN trend result should be object');
-      this.assert(typeof result.ip_version === 'string', 'IP version should be string');
-      
-      if (result.trend_data && Array.isArray(result.trend_data)) {
-        if (result.trend_data.length > 0) {
-          const dataPoint = result.trend_data[0];
-          this.assert(typeof dataPoint.date === 'string', 'Data point date should be string');
-          this.assert(typeof dataPoint.shell_index === 'number', 'Shell index should be number');
-        }
-      }
-      
-      console.log('✅ ASN trend endpoint tests passed');
+      const result = await this.client.getASNClassifications('15169');
+
+      this.assert(typeof result === 'object', 'ASN classifications result should be object');
+
+      console.log('✅ ASN classifications endpoint tests passed');
     } catch (error) {
-      console.log(`❌ ASN trend endpoint tests failed: ${error.message}`);
+      console.log(`❌ ASN classifications endpoint tests failed: ${error.message}`);
+      this.failed++;
+    }
+  }
+
+  async testPTRQueryEndpoint() {
+    console.log('📋 Testing PTR query endpoint...');
+
+    try {
+      // Test with Google's DNS IP
+      const result = await this.client.queryPTR(null, '8.8.8.8', null);
+
+      this.assert(typeof result === 'object', 'PTR query result should be object');
+
+      if (result.ip) {
+        this.assert(typeof result.ip === 'string', 'IP should be string');
+      }
+
+      console.log('✅ PTR query endpoint tests passed');
+    } catch (error) {
+      console.log(`❌ PTR query endpoint tests failed: ${error.message}`);
       this.failed++;
     }
   }
 
   async testToolIntegration() {
     console.log('📋 Testing tool integration...');
-    
+
     try {
       // Test health check tool
       const healthResult = await this.tools.executeTool('thealeph_health_check');
       this.assert(typeof healthResult === 'string', 'Tool result should be string');
       this.assert(healthResult.includes('Health Check'), 'Should contain health check info');
-      
-      // Test data summary tool
-      const summaryResult = await this.tools.executeTool('thealeph_data_summary');
+
+      // Test summary stats tool
+      const summaryResult = await this.tools.executeTool('thealeph_summary_stats');
       this.assert(typeof summaryResult === 'string', 'Tool result should be string');
-      this.assert(summaryResult.includes('Data Summary'), 'Should contain data summary info');
-      
+      this.assert(summaryResult.includes('Summary'), 'Should contain summary info');
+
       console.log('✅ Tool integration tests passed');
     } catch (error) {
       console.log(`❌ Tool integration tests failed: ${error.message}`);

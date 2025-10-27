@@ -77,7 +77,7 @@ class MCPProtocolTests {
       this.assert(response.id === 2, 'Response ID should match request ID');
       this.assert(response.result !== undefined, 'Should have result field');
       this.assert(Array.isArray(response.result.tools), 'Tools should be array');
-      this.assert(response.result.tools.length === 8, 'Should have 8 tools');
+      this.assert(response.result.tools.length === 13, 'Should have 13 tools');
       
       // Check tool structure
       const tool = response.result.tools[0];
