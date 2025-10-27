@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "thealeph": {
+      "command": "thealeph-mcp",
+      "env": {
+        "NETCORES_API_URL": "http://localhost:8889"
+      }
+    }
+  }
+}

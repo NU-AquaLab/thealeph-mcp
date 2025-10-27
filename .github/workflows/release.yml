@@ -1,0 +1,93 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js 18.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18.x
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        if [ -f package-lock.json ]; then
+          echo "Found package-lock.json, using npm ci"
+          npm ci
+        else
+          echo "No package-lock.json found, using npm install"
+          npm install
+        fi
+
+    - name: Run tests
+      run: npm test
+
+    - name: Build package
+      run: npm pack
+
+    - name: Get package info
+      id: package
+      run: |
+        PACKAGE_NAME=$(node -p "require('./package.json').name")
+        PACKAGE_VERSION=$(node -p "require('./package.json').version")
+        TARBALL_NAME="${PACKAGE_NAME}-${PACKAGE_VERSION}.tgz"
+        echo "name=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
+        echo "version=${PACKAGE_VERSION}" >> $GITHUB_OUTPUT
+        echo "tarball=${TARBALL_NAME}" >> $GITHUB_OUTPUT
+        echo "Generated tarball: ${TARBALL_NAME}"
+        ls -la *.tgz
+
+    - name: Read changelog
+      id: changelog
+      run: |
+        if [ -f CHANGELOG.md ]; then
+          # Extract the latest version's changelog
+          CHANGELOG_CONTENT=$(awk '/^## / {if (found) exit; found=1; next} found {print}' CHANGELOG.md | head -20)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        else
+          echo "changelog=No changelog available. See commit history for changes." >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: "NetCores MCP ${{ steps.package.outputs.version }}"
+        body: |
+          🚀 **NetCores MCP ${{ steps.package.outputs.version }}**
+          
+          Connect Claude Desktop to Internet topology analysis through the Model Context Protocol.
+          
+          ## 📦 Installation
+          ```bash
+          npm install -g https://github.com/estcarisimo/netcores-mcp.git
+          netcores-mcp --setup
+          ```
+          
+          ## 📋 Changes
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ## 🔗 Resources
+          - 🌐 [NetCores Web App](https://netcores.fi.uba.ar)
+          - 📖 [Documentation](https://netcores.fi.uba.ar/mcp-docs)
+          - 🐛 [Report Issues](https://github.com/estcarisimo/netcores-mcp/issues)
+        files: |
+          ${{ steps.package.outputs.tarball }}
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

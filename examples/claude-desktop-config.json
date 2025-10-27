@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "thealeph": {
+      "command": "thealeph-mcp"
+    }
+  }
+}
