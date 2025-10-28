@@ -286,11 +286,6 @@ Contributions are welcome! Please see our [Contributing Guide](docs/CONTRIBUTING
 - **The Aleph API Docs**: [API Documentation](https://thealeph.ai/docs)
 - **Model Context Protocol**: [MCP Specification](https://modelcontextprotocol.io/)
 
-## 🏆 Acknowledgments
-
-- **The Aleph** for providing network intelligence API
-- **Anthropic** for the Model Context Protocol
-- **Universidad de Buenos Aires** for network research infrastructure
 
 ---
 
