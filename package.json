@@ -45,6 +45,9 @@
     "type": "git",
     "url": "https://github.com/NU-AquaLab/thealeph-mcp.git"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "bugs": {
     "url": "https://github.com/NU-AquaLab/thealeph-mcp/issues"
   },
